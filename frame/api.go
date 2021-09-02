@@ -3,18 +3,35 @@ package frame
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
 	"reflect"
+	"strconv"
 	"strings"
 
 	dom "honnef.co/go/js/dom/v2"
 )
 
+const tagname = "json"
+
 type APIer struct {
 	Data1 float64 `json:"data1"`
 	Data2 string  `json:"data2"`
+}
+
+func (a *APIer) PostJSON(baseURL string) error {
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return err
+	}
+	u.Path = path.Join(u.Path, "get")
+	r, w := io.Pipe()
+	enc := json.NewEncoder(w)
+	go enc.Encode(a)
+	_, err = http.Post(u.String(), "json", r)
+	return err
 }
 
 func (a *APIer) Get(baseurl string) error {
@@ -31,7 +48,20 @@ func (a *APIer) Get(baseurl string) error {
 	return d.Decode(a)
 }
 
-func (a *APIer) Form(formElemID string) {
+func (a *APIer) IDs() (ids []string) {
+	branches := getBranch(tagname, a)
+	for i := range branches {
+		switch branches[i].Kind() {
+		case reflect.Float64, reflect.String:
+			ids = append(ids, branches[i].name+"-n"+strconv.Itoa(i))
+		default:
+			continue
+		}
+	}
+	return ids
+}
+
+func (a *APIer) Form(formElemID, baseURL string) {
 	doc := dom.GetWindow().Document()
 	form := doc.GetElementByID(formElemID)
 	if form == nil {
@@ -46,19 +76,23 @@ func (a *APIer) Form(formElemID string) {
 	branches := getBranch("json", a)
 	logf("branched: %#v\nfrom %#v", branches, *a)
 	var content string
+	ids := a.IDs()
 	for i := range branches {
 		switch branches[i].Kind() {
 		case reflect.Float64, reflect.String:
-			content += spf("<div><label>%[1]v</label><input id=\"%[1]s-%[2]d\" ></input></div>", branches[i].name, i, branches[i].String())
+			content += spf("<div><label>%[1]v</label><input id=\"%[2]s\" ></input></div>", branches[i].name, ids[i], branches[i].String())
 		default:
 			continue
 		}
 	}
-
+	logf("try")
+	content += "<div><button type=\"submit\">Submit</button></div>"
+	logf("%#v", newHTML(content))
 	appendChildren(form, newHTML(content))
 
 	form.AddEventListener(EventSubmit, false, func(e dom.Event) {
-		logf("type %v", e.Type())
+		a.
+			logf("type %v", e.Type())
 		logf("hi")
 	})
 }

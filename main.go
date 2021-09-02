@@ -12,7 +12,7 @@ const (
 func main() {
 	api := &frame.APIer{Data1: -1, Data2: "initial value"}
 
-	api.Form(formID)
+	api.Form(formID, "")
 	// api.Get(baseURL)
 
 }
