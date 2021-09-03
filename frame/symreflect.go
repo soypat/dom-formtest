@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"strings"
 
 	"gonum.org/v1/gonum/mat"
 )
@@ -70,7 +71,6 @@ type branch struct {
 
 func (b branch) Kind() reflect.Kind {
 	switch {
-
 	case b.number == b.number:
 		return reflect.Float64
 	case len(b.branches) > 0:
@@ -91,40 +91,68 @@ func (b branch) String() string {
 	}
 	return fmt.Sprintf("%v", i)
 }
+
+func walkStruct(tagname string, ptr interface{}, tree string, f func(tree string, field reflect.Value)) {
+	v := reflect.ValueOf(ptr)
+	vderef := reflect.Indirect(v)
+	if v.Type().Kind() != reflect.Struct && (v.IsNil() || vderef == v) {
+		panic("nil value passed to getBranch or not a pointer")
+	}
+	if vderef.Kind() != reflect.Struct {
+		panic("getBranch called on non-struct interface:" + v.Kind().String())
+	}
+	a := vderef.Type()
+	for i := 0; i < a.NumField(); i++ {
+		fieldT := a.Field(i)
+		tag := fieldT.Tag.Get(tagname)
+		switch tag {
+		case "-":
+			continue
+		case "":
+			tag = fieldT.Name
+		}
+		fieldV := vderef.Field(i)
+		switch fieldT.Type.Kind() {
+		case reflect.Struct:
+			if reflect.Indirect(fieldV) == fieldV {
+				// is not a pointer
+				walkStruct(tagname, fieldV.Addr().Interface(), tree+"."+tag, f)
+			} else {
+				// is a pointer to a struct
+				walkStruct(tagname, fieldV.Interface(), tree+"."+tag, f)
+			}
+		default:
+			f(tree+"."+tag, fieldV)
+		}
+	}
+}
+
 func getBranch(tagname string, ptr interface{}) []branch {
 	main := make([]branch, 0)
-	v := reflect.ValueOf(ptr)
-	if v.IsNil() {
-		panic("nil value passed to getBranch")
-	}
-	v = reflect.Indirect(v)
-	if v.Kind() != reflect.Struct {
-		panic("getBranch called on non-struct interface")
-	}
-	a := v.Type()
-	for i := 0; i < a.NumField(); i++ {
-		field := a.Field(i)
-		tag := field.Tag.Get(tagname)
-		if tag == "" {
-			continue
-		}
+	walkStruct(tagname, ptr, "", func(tree string, field reflect.Value) {
 		var b branch
-		switch field.Type.Kind() {
+		tags := strings.Split(tree, ".")
+		if len(tags) == 0 {
+			panic("zero length tags")
+		}
+		tag := tags[len(tags)-1]
+		switch field.Kind() {
 		case reflect.Struct:
-			b = branch{name: tag, number: math.NaN(), branches: getBranch(tagname, v.Field(i))}
+			b = branch{name: tag, number: math.NaN(), branches: getBranch(tagname, field)}
 		case reflect.Bool:
 			b = branch{name: tag, number: math.NaN()}
 		case reflect.String:
-			b = branch{name: tag, number: math.NaN(), str: v.Field(i).String()}
+			b = branch{name: tag, number: math.NaN(), str: field.String()}
 		case reflect.Int:
-			b = branch{name: tag, number: float64(v.Field(i).Int())}
+			b = branch{name: tag, number: float64(field.Int())}
 		case reflect.Float64:
-			b = branch{name: tag, number: v.Field(i).Float()}
+			b = branch{name: tag, number: field.Float()}
 		default:
-			continue
+			// do not add
 		}
 		main = append(main, b)
-	}
+	})
+
 	return main
 }
 

@@ -10,7 +10,7 @@ import (
 func (a *APIer) Route(g *gin.RouterGroup) {
 	g.POST("post", func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", "*") // Allow javascript requests from localhost
-		err := c.BindJSON(a)
+		err := c.BindJSON(a.dataPtr)
 		if err != nil {
 			status.WriteBadRequest(c, "unable to bind json", err)
 			return
@@ -19,6 +19,6 @@ func (a *APIer) Route(g *gin.RouterGroup) {
 	})
 	g.GET("get", func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", "*") // Allow javascript requests from localhost
-		c.JSON(200, a)
+		c.JSON(200, a.dataPtr)
 	})
 }

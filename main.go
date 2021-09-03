@@ -10,9 +10,16 @@ const (
 )
 
 func main() {
-	api := &frame.APIer{Data1: -1, Data2: "initial value"}
+	var dats = struct {
+		A string  `json:"dataStr"`
+		B float64 `json:"dataNum"`
+	}{}
+	api, err := frame.New("form1", baseURL, &dats)
+	if err != nil {
+		panic(err)
+	}
 
-	api.Form(formID, "")
+	api.GenerateForm()
 	// api.Get(baseURL)
 
 }
