@@ -92,7 +92,7 @@ func (b branch) String() string {
 	return fmt.Sprintf("%v", i)
 }
 
-func walkStruct(tagname string, ptr interface{}, tree string, f func(tree string, field reflect.Value)) {
+func walkStruct(tagname string, ptr interface{}, root string, f func(tree string, field reflect.Value)) {
 	v := reflect.ValueOf(ptr)
 	vderef := reflect.Indirect(v)
 	if v.Type().Kind() != reflect.Struct && (v.IsNil() || vderef == v) {
@@ -112,17 +112,16 @@ func walkStruct(tagname string, ptr interface{}, tree string, f func(tree string
 			tag = fieldT.Name
 		}
 		fieldV := vderef.Field(i)
+		f(root+"."+tag, fieldV)
 		switch fieldT.Type.Kind() {
 		case reflect.Struct:
 			if reflect.Indirect(fieldV) == fieldV {
 				// is not a pointer
-				walkStruct(tagname, fieldV.Addr().Interface(), tree+"."+tag, f)
+				walkStruct(tagname, fieldV.Addr().Interface(), root+"."+tag, f)
 			} else {
 				// is a pointer to a struct
-				walkStruct(tagname, fieldV.Interface(), tree+"."+tag, f)
+				walkStruct(tagname, fieldV.Interface(), root+"."+tag, f)
 			}
-		default:
-			f(tree+"."+tag, fieldV)
 		}
 	}
 }

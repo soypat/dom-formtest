@@ -1,4 +1,4 @@
-// +build !js
+// +build !js nojs
 
 package frame
 
@@ -6,6 +6,8 @@ import (
 	"github.com/LIA-Aerospace/olord/gin/status"
 	"github.com/gin-gonic/gin"
 )
+
+type formElement = struct{}
 
 func (a *APIer) Route(g *gin.RouterGroup) {
 	g.POST("post", func(c *gin.Context) {

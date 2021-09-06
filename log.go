@@ -1,6 +1,4 @@
-// +build js
-
-package frame
+package main
 
 import (
 	"fmt"
