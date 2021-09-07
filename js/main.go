@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"formtest/frame"
 	"reflect"
 
-	"gonum.org/v1/gonum/spatial/r3"
+	"github.com/soypat/dom-formtest/frame"
+
+	"github.com/LIA-Aerospace/ctl/platforms/vtvleatt"
 	"honnef.co/go/js/dom/v2"
 )
 
@@ -15,13 +16,9 @@ const (
 )
 
 func main() {
-	var dats = struct {
-		A string  `json:"dataStr"`
-		B float64 `json:"dataNum"`
-		V r3.Vec  `json:"vector"`
-	}{}
-	dats.A = "init"
-	dats.B = -1
+	var dats = vtvleatt.Parameters{}
+	// dats.A = "init"
+	// dats.B = -1
 	api, err := frame.New("form1", baseURL, &dats)
 	if err != nil {
 		panic(err)

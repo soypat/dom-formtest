@@ -17,18 +17,18 @@ type APIer struct {
 	form    *formElement
 }
 
-func New(label, baseURL string, dataptr interface{}) (*APIer, error) {
+func New(formID, baseURL string, dataptr interface{}) (*APIer, error) {
 	a := APIer{}
-	u, err := url.Parse(baseURL)
-	if err != nil {
-		return nil, err
-	}
 	if dataptr == nil || reflect.Indirect(reflect.ValueOf(dataptr)) == reflect.ValueOf(dataptr) {
 		return nil, errors.New("data must be pointer")
 	}
-	a.formID = label
-	a.baseURL = *u
+	a.formID = formID
+
 	a.dataPtr = dataptr
+	u, err := url.Parse(baseURL)
+	if err == nil {
+		a.baseURL = *u
+	}
 	return &a, nil
 }
 
