@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/soypat/dom-formtest/frame"
+	"github.com/soypat/dom-formtest/js/frame"
 
-	"github.com/LIA-Aerospace/ctl/platforms/vtvleatt"
 	"honnef.co/go/js/dom/v2"
 )
 
@@ -16,7 +15,7 @@ const (
 )
 
 func main() {
-	var dats = vtvleatt.Parameters{}
+	var dats = Parameters{}
 	// dats.A = "init"
 	// dats.B = -1
 	api, err := frame.New("form1", baseURL, &dats)
@@ -35,17 +34,36 @@ func main() {
 		logf("got data %#v", dats)
 	})
 	UpdateValues(api)
+	FormatForm(api)
 }
 
 func UpdateValues(api *frame.APIer) {
-	api.ForEachInput(func(he *dom.HTMLInputElement, v reflect.Value) {
+	api.ForEachInput(func(he frame.Input, v reflect.Value) {
+		ip := he.Input()
 		switch v.Kind() {
 		case reflect.String:
-			he.SetValue(v.String())
+			ip.SetValue(v.String())
 		case reflect.Float64:
-			he.SetValue(fmt.Sprintf("%g", v.Float()))
+			ip.SetValue(fmt.Sprintf("%g", v.Float()))
 		case reflect.Int:
-			he.SetValue(fmt.Sprintf("%d", v.Int()))
+			ip.SetValue(fmt.Sprintf("%d", v.Int()))
 		}
+	})
+}
+
+func FormatForm(api *frame.APIer) {
+	api.Form().Class().Add("section")
+	api.ForEachField(func(he frame.Field, v reflect.Value) {
+		he.MainDiv().Class().Set([]string{"field"})
+
+		he.Label().Class().Set([]string{"label"})
+		he.Label().SetTextContent(fmt.Sprintf("%s [%v]", he.Name(), v.Type().String()))
+	})
+
+	api.ForEachInput(func(el frame.Input, v reflect.Value) {
+		el.MainDiv().Class().Set([]string{"control", "block"})
+		el.Input().Class().Set([]string{"input", "level-item", "is-small"})
+		el.Span().Class().Set([]string{"help"})
+		el.Span().SetTextContent(el.Name())
 	})
 }
